@@ -1,24 +1,18 @@
-#include "XYWatch_hal.h"
+#include <Arduino.h>
+#include <config.h>
+#include <hal.h>
 
-void setup()
-{
-   pinMode(PWR_ON, OUTPUT);
-   digitalWrite(PWR_ON, HIGH);
-
-   Serial.begin(115200); /* prepare for possible serial debug */
-   Serial.println("Hello T-Watch");
-   XYWatch::HAL_Init();
-
-   //XYWatchApp::AppInit();
-   Serial.println("XYWatch Setup done");
+void setup() {
+  // put your setup code here, to run once:
+  MyWatch::HAL_Init();
+  
+  Serial.begin(115200); 
+  //Serial.println("Hello T-Watch");
+  
 }
 
-void loop()
-{
-   //XYWatch::HAL_Update();
-
-   //XYWatchApp::APP_Frame();
-
-   //lv_timer_handler();
- 
- }
+void loop() {
+  MyWatch::HAL_Update();
+  //Serial.println("Hello T-Watch");
+  //digitalWrite(Motor, HIGH);
+}
