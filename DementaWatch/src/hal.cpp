@@ -13,8 +13,9 @@ void MyWatch::HAL_Init(void)
     {
         AccSensor_Init();
     }
-
+    #ifdef HasHeartRate
     heartInit();
+    #endif
 }
 
 void Debugloop(uint32_t millis, uint32_t time_ms)
@@ -36,8 +37,11 @@ void MyWatch::HAL_Update(void)
     ms = millis();
     Motor_Loop(ms);
     AccSensor_Updata(ms, 100);
+    #ifdef HasHeartRate
     heartLoop(ms, 200);
+    #endif
     
+
 }
 
 void MyWatch::HAL_Sleep()

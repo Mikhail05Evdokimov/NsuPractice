@@ -10,7 +10,7 @@ static float measurementTime = 0;
 static uint32_t lastBeat = 0;
 
 void MyWatch::heartInit() {
-  Serial.begin(9600);//(115200);
+  //Serial.begin(9600);//(115200);
   //Serial.println("Initializing...");
 
   // Initialize sensor

@@ -7,3 +7,4 @@
 #define IICSCL 25
 #define IICSDA 26
 
+#define HasHeartRate //
