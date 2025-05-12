@@ -1,6 +1,8 @@
 #include <esp_now.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include "qeue.h"
+#include <math.h>
 
 const char* ssid = "AndroidAP_9266";
 const char* password = "22833788270";
@@ -8,12 +10,12 @@ const String serverName = "http://192.168.5.231";
 
 // Structure example to receive data
 // Must match the sender structure
-typedef struct struct_xyz {
-  int id;
-  float x;
-  float y;
-  float z;
-}struct_xyz;
+// typedef struct struct_xyz {
+//   int id;
+//   float x;
+//   float y;
+//   float z;
+// }struct_xyz;
 
 typedef struct struct_heart {
   int id;
@@ -30,13 +32,15 @@ typedef struct struct_door {
 struct_xyz xyzData;
 struct_heart heartData;
 struct_door doorData;
+static uint32_t heartTime = 0;
+static uint32_t doorTime = 0;
 
-void httpPost(String data) {
+void httpPost(String data, String path) {
   if(WiFi.status()== WL_CONNECTED){
       WiFiClient client;
       HTTPClient http;
     
-      String serverPath = serverName + "/data";
+      String serverPath = serverName + path;
       http.begin(client, serverPath.c_str());
       
       // Specify content-type header
@@ -67,22 +71,38 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
     Serial.printf("y value: %f \n", xyzData.y);
     Serial.printf("z value: %f \n", xyzData.z);
     Serial.println();
-    httpPost("{\"id\":1, \"X\":$xyzData.x, \"Y\":$xyzData.y, \"Z\":$xyzData.z}")
+    enQueue(xyzData);
+    struct_xyz last = deQueue();
+    if((fabs(xyzData.x - last.x) + fabs(xyzData.y - last.y) + fabs(xyzData.z - last.z)) / 3 > 15) {
+      xyzWarning();
+    }
+    httpPost("{\"id\":1, \"X\":$xyzData.x, \"Y\":$xyzData.y, \"Z\":$xyzData.z}", "/xyz");
   }
   if (incomingData[0]==2) {
     memcpy(&heartData, incomingData, sizeof(heartData));
+    if (!(heartData.heartRate > 80 || heartData.heartRate < 60)) {
+      heartTime = millis();
+    }
     Serial.printf("heart rate value: %f \n", heartData.heartRate);
+    httpPost("{\"id\":2, \"HeartBeat\":$heartData.heartRate}", "/heart");
   }
   if (incomingData[0]==3) {
     memcpy(&doorData, incomingData, sizeof(doorData));
     Serial.printf("door status: %s \n", doorData.doorStatus);
+    doorTime = millis();
+    httpPost("{\"id\":3, \"Door\":$doorData.doorStatus}", "/door");
   }
-  
-  // Update the structures with the new incoming data
-  //boardsStruct[myData.id-1].x = myData.x;
-  //boardsStruct[myData.id-1].y = myData.y;
-  //boardsStruct[myData.id-1].z = myData.z;
 
+}
+
+void heartWarning(){
+  Serial.println("HEART WARNING");
+}
+void doorWarning(){
+  Serial.println("DOOR WARNING");
+}
+void xyzWarning(){
+  Serial.println("XYZ WARNING");
 }
  
 void setup() {
@@ -99,18 +119,19 @@ void setup() {
     return;
   }
   
-  // Once ESPNow is successfully Init, we will register for recv CB to
-  // get recv packer info
+  // Once ESPNow is successfully Init, we will register for recv CB to get recv packer info
   esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 }
  
 void loop() {
-  // Acess the variables for each board
-  //Serial.println(boardsStruct[0].x);
-  /*int board1Y = boardsStruct[0].y;
-  int board2X = boardsStruct[1].x;
-  int board2Y = boardsStruct[1].y;
-  int board3X = boardsStruct[2].x;
-  int board3Y = boardsStruct[2].y;*/
+  
+  static uint32_t ms;
+  ms = millis();
+  if (ms - heartTime > 5000) {
+    heartWarning();
+  }
+  if (ms - doorTime > 10000) {
+    doorWarning();
+  }
  
 }
